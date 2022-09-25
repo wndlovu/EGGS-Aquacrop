@@ -20,7 +20,7 @@ import glob
 _=[sys.path.append(i) for i in ['.', '..']]
 
 ## Aquacrop Model
-path = get_filepath(wd + '\\data\\hydrometeorology\\gridMET\gridMET_1381151.txt') #replace folder name from folder name with file path
+path = get_filepath(wd + '/data/hydrometeorology/gridMET/gridMET_1381151.txt') #replace folder name from folder name with file path
 wdf = prepare_weather(path)
 sim_start = '2000/01/01' #dates to match crop data
 sim_end = '2015/12/31'
@@ -53,8 +53,8 @@ irrig_aqc = irrig_aqc[irrig_aqc['Year'] >= 2006] # filter for yrs>2006 to match 
 
 
 ## Water Rights WIMAS
-wr_groups = pd.read_csv(wd + "\\data\\water\\WRgroups_FieldByYear.csv")
-water_use = pd.read_csv(wd + "\\data\\water\\WRgroups_UseByWRG.csv")
+wr_groups = pd.read_csv(wd + "/data/water/WRgroups_FieldByYear.csv")
+water_use = pd.read_csv(wd + "/data/water/WRgroups_UseByWRG.csv")
 
 # merge water right groups and water use
 irrig_wimas = pd.merge(wr_groups, water_use, on=["WR_GROUP", "Year"]) # 
@@ -74,7 +74,7 @@ boxplot.set_xlabel('Soil-moisture threshold (%TAW)')
 
 # Yield Data
 # yield data from usda nass https://quickstats.nass.usda.gov/#D93A3218-8B77-31A6-B57C-5A5D97A157D8
-yield_Irrig = pd.read_csv(wd + "\\data\\agricLand\\yield/sheridanYield_Irrig.csv") #CORN, GRAIN, YIELD, MEASURED IN BU / ACRE
+yield_Irrig = pd.read_csv(wd + "/data/agricLand/yield/sheridanYield_Irrig.csv") #CORN, GRAIN, YIELD, MEASURED IN BU / ACRE
 #yield_noIrrig = pd.read_csv(wd.replace('code',"data/agricLand/gridMET/sheridanYield_noIrrig.csv")) #CORN, GRAIN, IRRIGATED - YIELD, MEASURED IN BU / ACRE
 
 # Select year and irrigation value
