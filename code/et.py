@@ -40,12 +40,44 @@ model_results = model._outputs.water_flux
 # add the date variable and jon by index
 model_results = model_results.join(wdf_date)
 
-## add ET data from 
+## add ET data from online models
+disalexi = pd.read_csv(wd + '/data/hydrometeorology/openET/ET_monthly_disalexi_FieldsAroundSD6KS_20220708.csv')
+eemetric = pd.read_csv(wd + "/data/hydrometeorology/openET/ET_monthly_eemetric_FieldsAroundSD6KS_20220708.csv")
+enseble = pd.read_csv(wd + "/data/hydrometeorology/openET/ET_monthly_ensemble_FieldsAroundSD6KS_20220708.csv")
+geesebal = pd.read_csv(wd + "/data/hydrometeorology/openET/ET_monthly_geesebal_FieldsAroundSD6KS_20220708.csv")
+ptjpl = pd.read_csv(wd + "/data/hydrometeorology/openET/ET_monthly_ptjpl_FieldsAroundSD6KS_20220708.csv")
+sims = pd.read_csv(wd + "/data/hydrometeorology/openET/ET_monthly_sims_FieldsAroundSD6KS_20220708.csv")
+ssebop = pd.read_csv(wd + "/data/hydrometeorology/openET/ET_monthly_ssebop_FieldsAroundSD6KS_20220708.csv")
+
+# filter for site 1381151
+disalexi = disalexi[disalexi['UID'] == 1381151]
+eemetric = eemetric[eemetric['UID'] == 1381151]
+enseble = enseble[enseble['UID'] == 1381151]
+geesebal = geesebal[geesebal['UID'] == 1381151]
+ptjpl = ptjpl[ptjpl['UID'] == 1381151]
+sims = sims[sims['UID'] == 1381151]
+ssebop = ssebop[ssebop['UID'] == 1381151]
+
+# set time as index to allow for joining dfs later
+disalexi = disalexi.set_index('time')
+eemetric = eemetric.set_index('time')
+enseble = enseble.set_index('time')
+geesebal = geesebal.set_index('time')
+ptjpl = ptjpl.set_index('time')
+sims = sims.set_index('time')
+ssebop = ssebop.set_index('time')
+
+# add method identifier to every column
+disalexi.columns = [str(col) + '_disalexi' for col in disalexi.columns]
+enseble.columns = [str(col) + '_ensemble' for col in enseble.columns]
+eemetric.columns = [str(col) + '_eemetric' for col in eemetric.columns]
+geesebal.columns = [str(col) + '_geesebal' for col in geesebal.columns]
+ptjpl.columns = [str(col) + '_ptjpl' for col in ptjpl.columns]
+ssebop.columns = [str(col) + '_ssebop' for col in ssebop.columns]
+sims.columns = [str(col) + '_sims' for col in sims.columns]
 
 
-
-
-
-
+fullET = pd.concat([disalexi, enseble, eemetric, geesebal, ptjpl, sims, ssebop], axis=1)
+fullET.reset_index(inplace=True) # make time a column
 
 
