@@ -27,4 +27,6 @@ gridMET = gridMET.assign(day =  gridMET['date'].dt.day,
 final_df = gridMET[gridMET['UID'] == 1381151]
 final_df = final_df[["day", "month", "year", "Tmin", "Tmax", "pr", "eto"]]
 
-               
+ 
+# download gridMET final_df as txt
+final_df.to_csv('gridMET_1381151.txt', sep=' ', index=False, header=True)              

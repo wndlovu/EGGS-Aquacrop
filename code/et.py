@@ -21,8 +21,8 @@ wd=getcwd() # set working directory
 chdir(wd)
 path = get_filepath(wd + '/data/hydrometeorology/gridMET/gridMET_1381151.txt') #replace folder name from folder name with file path
 wdf = prepare_weather(path)
-sim_start = '2000/01/01' #dates to match crop data
-sim_end = '2015/12/31'
+sim_start = '2016/01/01' #dates to match crop data
+sim_end = '2021/12/01'
 soil= Soil('Loam')
 crop = Crop('Maize',planting_date='05/01')
 initWC = InitialWaterContent(value=['FC'])
@@ -30,6 +30,9 @@ initWC = InitialWaterContent(value=['FC'])
 
 # get date variable from the wdf
 wdf_date = wdf[["Date"]]
+wdf_date = wdf_date[wdf_date['Date'] > '2015/12/31']
+wdf_date = wdf_date.reset_index() # reset index to start from 0
+wdf_date = wdf_date[['Date']] # select date variable and drop second index column
 
 # run aquacrop water flux model
 model = AquaCropModel(sim_start,sim_end,wdf,soil,crop,initWC)
@@ -39,6 +42,12 @@ model_results = model._outputs.water_flux
 
 # add the date variable and jon by index
 model_results = model_results.join(wdf_date)
+
+# calculate monthly average ET value
+model_results['yearmon'] = model_results['Date'].dt.to_period('M') # create yearmonth variable
+ave_et = model_results.groupby('yearmon')['Es', 'EsPot'].mean()
+
+
 
 ## add ET data from online models
 disalexi = pd.read_csv(wd + '/data/hydrometeorology/openET/ET_monthly_disalexi_FieldsAroundSD6KS_20220708.csv')
@@ -80,5 +89,5 @@ sims.columns = [str(col) + '_sims' for col in sims.columns]
 fullET = pd.concat([disalexi, enseble, eemetric, geesebal, ptjpl, sims, ssebop], axis=1)
 fullET.reset_index(inplace=True) # make time a column
 
-# 
+# create df with aquacrop mean ET and other online models 
 
