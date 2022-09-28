@@ -13,6 +13,7 @@ from os import chdir, getcwd
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import datetime
 
 
 
@@ -44,8 +45,9 @@ model_results = model._outputs.water_flux
 model_results = model_results.join(wdf_date)
 
 # calculate monthly average ET value
-model_results['yearmon'] = model_results['Date'].dt.to_period('M') # create yearmonth variable
+model_results['yearmon'] = pd.to_datetime(model_results['Date']).dt.strftime('%Y-%m') # create yearmonth variable
 ave_et = model_results.groupby('yearmon')['Es', 'EsPot'].mean()
+ave_et.reset_index(inplace=True)
 
 
 
@@ -88,6 +90,22 @@ sims.columns = [str(col) + '_sims' for col in sims.columns]
 
 fullET = pd.concat([disalexi, enseble, eemetric, geesebal, ptjpl, sims, ssebop], axis=1)
 fullET.reset_index(inplace=True) # make time a column
+fullET['date'] = pd.to_datetime(fullET['time'])
+fullET['yearmon'] = pd.to_datetime(fullET['date']).dt.strftime('%Y-%m') # create year mon
+
 
 # create df with aquacrop mean ET and other online models 
+et_means = fullET[['time', 
+                   'yearmon',
+                   'et_mean_disalexi',
+                   'et_mean_ensemble',
+                   'et_mean_eemetric',
+                   'et_mean_geesebal',
+                   'et_mean_ptjpl',
+                   'et_mean_sims',
+                   'et_mean_ssebop']] # select mean ETs 
 
+
+et_means = et_means.merge(ave_et, left_on = 'yearmon', right_on = "yearmon")
+                               
+                              
