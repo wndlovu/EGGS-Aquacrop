@@ -1,23 +1,23 @@
-from os import chdir, getcwd
-wd=getcwd() # set working directory
-chdir(wd)
 !pip install aquacrop==0.2
-#!pip install aquacrop
-
-#from aquacrop import AquaCropModel, Soil, Crop, InitialWaterContent
-#from aquacrop.utils import prepare_weather, get_filepath
+from os import chdir, getcwd
 from aquacrop.classes import    *
 from aquacrop.core import       *
-
-
-
-
 import pandas as pd
 import sys
 import seaborn as sns
 import os
 import glob
 _=[sys.path.append(i) for i in ['.', '..']]
+wd=getcwd() # set working directory
+chdir(wd)
+
+#!pip install aquacrop
+
+
+
+
+
+
 
 ## Aquacrop Model
 path = get_filepath(wd + '/data/hydrometeorology/gridMET/gridMET_1381151.txt') #replace folder name from folder name with file path

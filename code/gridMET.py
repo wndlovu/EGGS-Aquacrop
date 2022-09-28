@@ -10,7 +10,7 @@ import glob
 from datetime import datetime
 
 
-gridMET = pd.read_csv(wd + '\\data\\hydrometeorology\\gridMET/gridMET_400m_2000_21.csv')
+gridMET = pd.read_csv(wd + '/data/hydrometeorology/gridMET/gridMET_400m_2000_21.csv')
 
 # recalculate t0c in celcius and create ymd variables
 gridMET = gridMET.assign(Tmin = gridMET.tmmn-273.15,
