@@ -46,8 +46,9 @@ model_results = model_results.join(wdf_date)
 
 # calculate monthly average ET value
 model_results['yearmon'] = pd.to_datetime(model_results['Date']).dt.strftime('%Y-%m') # create yearmonth variable
-ave_et = model_results.groupby('yearmon')['Es', 'EsPot'].mean()
-ave_et.reset_index(inplace=True)
+ave_et = model_results.groupby('yearmon')['Es'].mean()
+
+#ave_et = ave_et.rename(columns={'Es':'aquacrop'}) not working
 
 
 
@@ -105,7 +106,38 @@ et_means = fullET[['time',
                    'et_mean_sims',
                    'et_mean_ssebop']] # select mean ETs 
 
+# rename colums
+et_means = et_means.rename(columns={
+                   'et_mean_disalexi': 'disalexi',
+                   'et_mean_ensemble': 'ensemble',
+                   'et_mean_eemetric': 'eemetric',
+                   'et_mean_geesebal': 'geesebal',
+                   'et_mean_ptjpl': 'ptjpl',
+                   'et_mean_sims': 'sims',
+                   'et_mean_ssebop': 'ssebop'}) 
+
 
 et_means = et_means.merge(ave_et, left_on = 'yearmon', right_on = "yearmon")
+
+
+
+et_means_df = et_means[['time', 
+                        'et_mean_disalexi',
+                        'et_mean_ensemble',
+                        'et_mean_eemetric',
+                        'et_mean_geesebal',
+                        'et_mean_ptjpl',
+                        'et_mean_sims',
+                        'et_mean_ssebop',
+                        'Es']]
                                
-                              
+
+et_means.plot(x = 'time')
+plt.xticks(rotation=90)  
+plt.ylabel('ET (mm)')
+plt.xlabel('')
+
+
+
+
+                      
