@@ -121,17 +121,7 @@ et_means = et_means.merge(ave_et, left_on = 'yearmon', right_on = "yearmon")
 
 
 
-et_means_df = et_means[['time', 
-                        'et_mean_disalexi',
-                        'et_mean_ensemble',
-                        'et_mean_eemetric',
-                        'et_mean_geesebal',
-                        'et_mean_ptjpl',
-                        'et_mean_sims',
-                        'et_mean_ssebop',
-                        'Es']]
-                               
-
+  # plot line graph for the OpenET and AquaCrop                         
 et_means.plot(x = 'time')
 plt.xticks(rotation=90)  
 plt.ylabel('ET (mm)')
