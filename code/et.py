@@ -7,8 +7,9 @@ Created on Fri Sep 23 22:17:13 2022
 
 !pip install aquacrop==2.2
 !pip install numba==0.55
-from aquacrop import AquaCropModel, Soil, Crop, InitialWaterContent
+from aquacrop import AquaCropModel, Soil, Crop, InitialWaterContent, IrrigationManagement
 from aquacrop.utils import prepare_weather, get_filepath
+#from aquacrop.entities import IrrigationManagement
 from os import chdir, getcwd
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -24,9 +25,10 @@ path = get_filepath(wd + '/data/hydrometeorology/gridMET/gridMET_1381151.txt') #
 wdf = prepare_weather(path)
 sim_start = '2016/01/01' #dates to match crop data
 sim_end = '2021/12/01'
-soil= Soil('Loam')
+soil= Soil('SiltLoam')
 crop = Crop('Maize',planting_date='05/01')
 initWC = InitialWaterContent(value=['FC'])
+irr_mngt = IrrigationManagement(irrigation_method=1,SMT=[80]*4)
 
 
 # get date variable from the wdf
@@ -36,7 +38,7 @@ wdf_date = wdf_date.reset_index() # reset index to start from 0
 wdf_date = wdf_date[['Date']] # select date variable and drop second index column
 
 # run aquacrop water flux model
-model = AquaCropModel(sim_start,sim_end,wdf,soil,crop,initWC)
+model = AquaCropModel(sim_start,sim_end,wdf,soil,crop,initWC, irr_mngt)
 model.run_model(till_termination=True)
 #model_results = model2.get_simulation_results().head()
 model_results = model._outputs.water_flux
@@ -46,7 +48,7 @@ model_results = model_results.join(wdf_date)
 
 # calculate monthly average ET value
 model_results['yearmon'] = pd.to_datetime(model_results['Date']).dt.strftime('%Y-%m') # create yearmonth variable
-ave_et = model_results.groupby('yearmon')['Es'].mean()
+ave_et = model_results.groupby('yearmon')['Es'].sum()
 
 #ave_et = ave_et.rename(columns={'Es':'aquacrop'}) not working
 
@@ -118,16 +120,21 @@ et_means = et_means.rename(columns={
 
 
 et_means = et_means.merge(ave_et, left_on = 'yearmon', right_on = "yearmon")
+et_means = et_means[['time', 'disalexi', 
+                     'ensemble', 'geesebal', 
+                     'ptjpl', 'sims', 'ssebop', 'Es']]
 
 
 
-  # plot line graph for the OpenET and AquaCrop                         
-et_means.plot(x = 'time')
+# plot line graph for the OpenET and AquaCrop  
+et_means.plot(x = 'time', linewidth=1, alpha=0.4)
+plt.plot(et_means['time'], et_means['Es'], color='black')
 plt.xticks(rotation=90)  
 plt.ylabel('ET (mm)')
 plt.xlabel('')
 
 
 
+                         
 
                       
