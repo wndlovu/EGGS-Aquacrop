@@ -48,8 +48,8 @@ model_results = model_results.join(wdf_date)
 
 # calculate monthly average ET value
 model_results['yearmon'] = pd.to_datetime(model_results['Date']).dt.strftime('%Y-%m') # create yearmonth variable
-ave_et = model_results.groupby('yearmon')['Es'].sum()
-
+model_results = model_results.assign(Et = model_results['Es'] + model_results['Tr'])
+ave_et = model_results.groupby('yearmon')['Et'].sum()
 #ave_et = ave_et.rename(columns={'Es':'aquacrop'}) not working
 
 
@@ -128,10 +128,11 @@ et_means = et_means[['time', 'disalexi',
 
 # plot line graph for the OpenET and AquaCrop  
 et_means.plot(x = 'time', linewidth=1, alpha=0.4)
-plt.plot(et_means['time'], et_means['Es'], color='black')
+plt.plot(et_means['time'], et_means['Et'], color='black')
 plt.xticks(rotation=90)  
 plt.ylabel('ET (mm)')
 plt.xlabel('')
+plt.legend(bbox_to_anchor=(1.02, 1), loc='upper left', borderaxespad=0)
 
 
 
