@@ -24,7 +24,7 @@ path = get_filepath(wd + '/data/hydrometeorology/gridMET/gridMET_1381151.txt') #
 wdf = prepare_weather(path)
 sim_start = '2000/01/01' #dates to match crop data
 sim_end = '2015/12/31'
-soil= SoilClass('Loam')
+soil= SoilClass('SiltLoam')
 crop = CropClass('Maize',PlantingDate='05/01')
 initWC = InitWCClass(value=['FC'])
 
@@ -40,6 +40,7 @@ for smt in range(0,110,20):
     model.step(till_termination=True) # run model till the end
     outputs.append(model.Outputs.Final) # save results
 all_outputs = pd.concat(outputs)
+
 
 ## get irrigation values from Aquacrop
 irrig_aqc = all_outputs.assign(Year =  all_outputs['Harvest Date (YYYY/MM/DD)'].dt.year)
@@ -60,14 +61,14 @@ water_use = pd.read_csv(wd + "/data/water/WRgroups_UseByWRG.csv")
 irrig_wimas = pd.merge(wr_groups, water_use, on=["WR_GROUP", "Year"]) # 
 irrig_wimas = irrig_wimas[irrig_wimas['UID'] == 	1381151] # filter for field
 irrig_wimas = irrig_wimas[irrig_wimas['Year'] <= 	2015]
-irrig_wimas = irrig_wimas.assign(irrig_wimas_mm = (irrig_wimas['Irrigation_m3']/(irrig_wimas['TRGT_ACRES']*4046.86))*1000)
+irrig_wimas = irrig_wimas.assign(irrig_wimas = (irrig_wimas['Irrigation_m3']/(irrig_wimas['TRGT_ACRES']*4046.86))*1000)
 
 # WIMAS and Aquacrop irrigation df
 irrig_df = pd.merge(irrig_wimas, irrig_aqc, on=["Year", "Year"])
-irrig_df  = irrig_df[['UID', 'Year', 'Irrigation_m3', 'irrig_wimas_mm', '0', '20', '40', '60', '80', '100']]
+irrig_df  = irrig_df[['UID', 'Year', 'Irrigation_m3', 'irrig_wimas', '0', '20', '40', '60', '80', '100']]
 
-# boxplots showing WIMAS irrigation and irrigation levels at the different SMT
-boxplot = irrig_df.boxplot(column=['irrig_wimas_mm', '0', '20', '40', '60', '80', '100'])
+# boxplots showing WIMAS irrigation and irrigation levels at the different SMT 2006-20015
+boxplot = irrig_df.boxplot(column=['irrig_wimas', '0', '20', '40', '60', '80', '100'])
 boxplot.set_ylabel('Irrigation (mm)')
 boxplot.set_xlabel('Soil-moisture threshold (%TAW)')
 
@@ -88,6 +89,7 @@ yield_df = yield_df.pivot(index= 'Year', # show irrigation vals for each year ho
 yield_df = pd.merge(yield_df, yield_Irrig, on=["Year", "Year"])
 yield_df = yield_df.assign(YieldUSDA = yield_df['Value']*0.0673) # convert yield from bushels/acre to tonne/ha
 
+# yield 2000-2015
 boxplot = yield_df.boxplot(column=['YieldUSDA', '0', '20', '40', '60', '80', '100'])
 boxplot.set_ylabel('Yield (t/ha)')
 boxplot.set_xlabel('Soil-moisture threshold (%TAW)')

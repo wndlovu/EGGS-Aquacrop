@@ -77,7 +77,7 @@ soil_txt['soil_class'] = soil_txt.apply(lambda x: soiltexturalclass(x['sand_prc'
 
 # create a function that takes all the sites and uses soil type defined by soiltextureclass()
 
-
+soil_txt[soil_txt['UID']==1381151]
 
 
 !!pip install aquacrop==2.2
