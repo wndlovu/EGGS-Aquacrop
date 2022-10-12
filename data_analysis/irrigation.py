@@ -11,12 +11,6 @@ _=[sys.path.append(i) for i in ['.', '..']]
 wd=getcwd() # set working directory
 chdir(wd)
 
-#!pip install aquacrop
-
-
-
-
-
 
 
 ## Aquacrop Model
@@ -67,11 +61,6 @@ irrig_wimas = irrig_wimas.assign(irrig_wimas = (irrig_wimas['Irrigation_m3']/(ir
 irrig_df = pd.merge(irrig_wimas, irrig_aqc, on=["Year", "Year"])
 irrig_df  = irrig_df[['UID', 'Year', 'Irrigation_m3', 'irrig_wimas', '0', '20', '40', '60', '80', '100']]
 
-# boxplots showing WIMAS irrigation and irrigation levels at the different SMT 2006-20015
-boxplot = irrig_df.boxplot(column=['irrig_wimas', '0', '20', '40', '60', '80', '100'])
-boxplot.set_ylabel('Irrigation (mm)')
-boxplot.set_xlabel('Soil-moisture threshold (%TAW)')
-
 
 # Yield Data
 # yield data from usda nass https://quickstats.nass.usda.gov/#D93A3218-8B77-31A6-B57C-5A5D97A157D8
@@ -89,11 +78,6 @@ yield_df = yield_df.pivot(index= 'Year', # show irrigation vals for each year ho
 yield_df = pd.merge(yield_df, yield_Irrig, on=["Year", "Year"])
 yield_df = yield_df.assign(YieldUSDA = yield_df['Value']*0.0673) # convert yield from bushels/acre to tonne/ha
 
-# yield 2000-2015
-boxplot = yield_df.boxplot(column=['YieldUSDA', '0', '20', '40', '60', '80', '100'])
-boxplot.set_ylabel('Yield (t/ha)')
-boxplot.set_xlabel('Soil-moisture threshold (%TAW)')
 
-
-yield_df.to_csv(r'./data/analysis_results/yield_df.csv', sep=',', encoding='utf-8', header='true')
+#yield_df.to_csv(r'./data/analysis_results/yield_df.csv', sep=',', encoding='utf-8', header='true')
                          

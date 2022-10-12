@@ -24,9 +24,24 @@ gridMET = gridMET.assign(day =  gridMET['date'].dt.day,
                          year = gridMET['date'].dt.year)
 
 # filter for UID 1381151 and specified columns
-final_df = gridMET[gridMET['UID'] == 1381151]
-final_df = final_df[["day", "month", "year", "Tmin", "Tmax", "pr", "eto"]]
+#final_df = gridMET[gridMET['UID'] == 1381151]
+final_df = gridMET[["day", "month", "year", "Tmin", "Tmax", "pr", "eto"]]
+#final_df = final_df[["UID", "day", "month", "year", "Tmin", "Tmax", "pr", "eto"]]
 
  
 # download gridMET final_df as txt
 final_df.to_csv('gridMET_1381151.txt', sep=' ', index=False, header=True)              
+
+gridMET_list = []
+for i in gridMET:
+    df = pd.DataFrame(gridMET['UID'][i])
+    gridMET_list.append(df)           
+    
+   
+def gridmet(x, y):
+    u = [] 
+    df = x[x['UID'] == y]
+    u.append(df)
+    return(u)
+
+gridmet(gridMET, c(1381151)

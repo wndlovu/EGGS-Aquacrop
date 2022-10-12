@@ -124,13 +124,6 @@ et_means = et_means[['time', 'disalexi',
                      'ensemble', 'geesebal', 
                      'ptjpl', 'sims', 'ssebop', 'Es']]
 
-# plot line graph for the OpenET and AquaCrop  
-et_means.plot(x = 'time', linewidth=1, alpha=0.4)
-plt.plot(et_means['time'], et_means['Et'], color='black')
-plt.xticks(rotation=90)  
-plt.ylabel('ET (mm)')
-plt.xlabel('')
-plt.legend(bbox_to_anchor=(1.02, 1), loc='upper left', borderaxespad=0)
 
 
 #et_means.to_csv(r'./data/analysis_results/et_df_1381151.csv', sep=',', encoding='utf-8', header='true')
