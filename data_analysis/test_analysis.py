@@ -47,21 +47,9 @@ custom_soil = []
 for i in range(0, len(soils)): # full model replace with soils
     ids = soils['UID'][i] #create df with UID from the soils file used - fix this
     id_list.append(ids)
-    pred_thWP = ((-0.024*((soils['sand_prc'][i])/100))) 
-    + ((0.487*((soils['clay_prc'][i])/100))) 
-    + ((0.006*((soils['om'][i])/100)))
-    + ((0.005*((soils['sand_prc'][i])/100))*((soils['om'][i])/100))
-    - ((0.013*((soils['clay_prc'][i])/100))*((soils['om'][i])/100))
-    + ((0.068*((soils['sand_prc'][i])/100))*((soils['clay_prc'][i])/100))
-    + 0.031
+    pred_thWP = ((-0.024*((soils['sand_prc'][i])/100))) + ((0.487*((soils['clay_prc'][i])/100))) + ((0.006*((soils['om'][i])/100))) + ((0.005*((soils['sand_prc'][i])/100))*((soils['om'][i])/100))- ((0.013*((soils['clay_prc'][i])/100))*((soils['om'][i])/100))+ ((0.068*((soils['sand_prc'][i])/100))*((soils['clay_prc'][i])/100))+ 0.031
     wp = pred_thWP + (0.14 * pred_thWP) - 0.02
-    pred_thFC = ((-0.251*((soils['sand_prc'][i])/100))) 
-    + ((0.195*((soils['clay_prc'][i])/100)))
-    + ((0.011*((soils['om'][i])/100))) 
-    + ((0.006*((soils['sand_prc'][i])/100))*((soils['om'][i])/100))
-    - ((0.027*((soils['clay_prc'][i])/100))*((soils['om'][i])/100))
-    + ((0.452*((soils['sand_prc'][i])/100))*((soils['clay_prc'][i])/100))
-    + 0.299
+    pred_thFC = ((-0.251*((soils['sand_prc'][i])/100))) + ((0.195*((soils['clay_prc'][i])/100)))+ ((0.011*((soils['om'][i])/100))) + ((0.006*((soils['sand_prc'][i])/100))*((soils['om'][i])/100))- ((0.027*((soils['clay_prc'][i])/100))*((soils['om'][i])/100))+ ((0.452*((soils['sand_prc'][i])/100))*((soils['clay_prc'][i])/100))+ 0.299
     fc = pred_thFC + (1.283 * (np.power(pred_thFC, 2))) - (0.374 * pred_thFC) - 0.015
     #fc = pred_thFC + (1.283 * (pred_thFC*pred_thFC)) - (0.374 * pred_thFC) - 0.015
     ts =soils["thetaS_m3m3"][i]
@@ -78,23 +66,6 @@ for i in range(0, len(soils)): # full model replace with soils
 # make dictionary with id as key and custom soils properties as value
 soil_dict=dict(zip(id_list,custom_soil))
 
-#soils = soils.assign(om = (10**(soils['logOm_%'])))
-
-## test to see if pedo functions are working
-#pred_thWP = (-0.024*.4)+ (0.487*.2) + (0.006*0.25)+ (0.005*(.4*0.25))- (0.013*(0.2*0.25))+ (0.068*(.4*.2))+ 0.031
-#wp =  (pred_thWP + (0.14 * pred_thWP) - 0.02)*100
-
-#pred_thFC = (-0.251*.4) + (0.195*0.2) + (0.011*0.025) + (0.006*(.4*0.025))- (0.027*(0.2*0.025))+ (0.452*(.4*0.2))+ 0.299
-#fc = pred_thFC + ((1.283 * (np.power(pred_thFC, 2))) - (0.374 * pred_thFC) - 0.015)
-
-test_site2 = soils[soils['UID'] == 1381151]
-pred_thWP = (-0.024*.2616)+ (0.487*.1923) + (0.006*0.014398)+ (0.005*(.2616*0.014398))- (0.013*(0.1923*0.014398))+ (0.068*(.2616*.1923))+ 0.031
-wp =  (pred_thWP + (0.14 * pred_thWP) - 0.02)
-
-pred_thFC = (-0.251*.2616) + (0.195*.1923) + (0.011*0.014398) + (0.006*(.2616*0.014398))- (0.027*(0.1923*0.014398))+ (0.452*(.2616*.1923))+ 0.299
-fc = pred_thFC + ((1.283 * (np.power(pred_thFC, 2))) - (0.374 * pred_thFC) - 0.015)
-
-
 
 # test to see if the dictionaries are working
 #print(list(soil_dict.keys())[2])   
@@ -103,6 +74,7 @@ fc = pred_thFC + ((1.283 * (np.power(pred_thFC, 2))) - (0.374 * pred_thFC) - 0.0
 # filter for dictionary with 1381151 test site
 test_site = {k: v for k, v in soil_dict.items() if k == 1381151}  # filter for given site number
 test_site = list(test_site.values())
+
 
 
 ## run 
@@ -129,7 +101,7 @@ irr_mngt = IrrigationManagement(irrigation_method=1,SMT=[80]*4)
 #############
 
 
-d = custom.profile
+
 
 # run model
 model = AquaCropModel(sim_start,sim_end,wdf,custom,crop,initWC, irr_mngt)
@@ -274,124 +246,12 @@ et_means.to_csv(r'./data/analysis_results/et_df_test.csv', sep=',', encoding='ut
 
 
 
-
-
-
-
-
-
-
-
-s_t = soils[soils['UID'] == 177799]
-s_t = soils.assign('t' = -0.024*sand_prc + 0.487*clay_prc + 0.006*)
-
-
-
-my_dict = {}
-my_dict['id'] = d
-my_dict['soil_class'] = custom_soil
-
-
-
-for values in soil_dict:
-    print(values)
-
-l1=[1,2,3,4]
-l2=['a','b','c','d']
-d1=dict(zip(l1,l2)) #Converting zip object to dict using dict() contructor.
-print (d1)
-
-print(list(my_dict.keys())[1])   
-print(list(my_dict.values())[1])
-
-
-
-first_value = list(d1.values())[0]
-print('First Value: ', first_value)
-
-
-
-custom_soil2.set_index[d]  
-
-
-  
-### write function/loop that calculates
-c = custom_soil[0]
-d = id_df.values.tolist()
-d1 = d[c(0, 1)] # get first row
-d = id_df.head(1)
-#create a dictionary with key as id and val as custom soil
-dict = {d1: c}
-
-
-num_list = [1, 2, 3, 4, 5]
-num_list.extend([6, 7])
-    
-df2 = pd.DataFrame({'name':['John Doe', 'Mary Re', 'Harley Me'],
-                   'gender':[1,2,0],
-                   'age':[80, 38, 12],
-                   'height': [161.0, 173.5, 180.5],
-                   'weight': [62.3, 55.7, 80.0]
-                   }) 
  
-df3 = pd.DataFrame()   
-def calculate_bmi(x):
-    
-    bmi = x['weight'] / (x['height']/100)**2
-
-    return bmi
-
-df3['bmi'] = df2.apply(calculate_bmi, axis = 1)
-    
-
-# run for model with UID 1381151 (soils_df)
-id_df_1381151 = pd.DataFrame()
-custom_soil_1381151 = []
-for i in range(0, len(soils_df)): # full model replace with soils
-    #id_df_1381151['UID'] = soils_df['UID'] #create df with UID from the soils file used
-    ts =soils_df["thetaS_m3m3"][i]
-    ks=soils_df['logKsat_cmHr'][i]
-    tp = soils_df['thetaR_m3m3'][i]
-    custom = Soil('custom')
-    custom.add_layer(thickness=0.1,thS=ts, # assuming soil properties are the same in the upper 0.1m
-                     Ksat=ks,thWP =tp , 
-                     thFC = .4, penetrability = 100)
-    custom_soil_1381151.append(custom)
-    
-    
-custom_soil_1381151 = []
-ts =soils_df["thetaS_m3m3"]
-ks=soils_df['logKsat_cmHr']
-tp = soils_df['thetaR_m3m3']
-custom = Soil('custom')
-custom.add_layer(thickness=0.1,thS=ts, # assuming soil properties are the same in the upper 0.1m
-                 Ksat=ks,thWP =tp , 
-                 thFC = .4, penetrability = 100)
-custom_soil_1381151.append(custom)
 
 
 
-  
-    
-wdf = prepare_weather(path)
-sim_start = '2000/01/01' #dates to match crop data
-sim_end = '2002/12/31'
-soil = s_lst[0] # use custom layer for 1 site
-crop = CropClass('Maize',PlantingDate='05/01')
-initWC = InitWCClass(value=['FC'])   
 
 
-
-labels=[]
-outputs=[]
-for smt in range(0,110,20):
-    crop.Name = str(smt) # add helpfull label
-    labels.append(str(smt))
-    model = AquaCropModel(sim_start,sim_end,wdf,soil,crop,initWC)
-    model.initialize() # initilize model
-    model.step(till_termination=True) # run model till the end
-    outputs.append(model.Outputs.Final) # save results
-all_outputs = pd.concat(outputs) 
 
 
 
