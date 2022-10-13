@@ -33,6 +33,12 @@ soils_df = soils_df[soils_df['depth_cm'] == '0-5']
 
 soils = pd.DataFrame(soils_df_full)
 soils = soils[soils['depth_cm'] == '0-5'] # use upper 0.5cm
+soils = soils.assign(om = (10**(soils['logOm_%'])),
+                     Ksat_cmHr = (10**(soils['logKsat_cmHr'])))
+soils = soils[['UID', 'depth_cm', 'silt_prc', 'sand_prc',
+               'clay_prc', 'thetaS_m3m3', 'thetaR_m3m3',
+               'Ksat_cmHr', 'lambda', 'logHB_kPa', 'n',
+               'logAlpha_kPa1', 'om']]
 #soils = soils.head(1)
 
 # creating custom soil profile for all soils (run only for full model)
@@ -41,36 +47,53 @@ custom_soil = []
 for i in range(0, len(soils)): # full model replace with soils
     ids = soils['UID'][i] #create df with UID from the soils file used - fix this
     id_list.append(ids)
-    pred_thWP = (-0.024*soils['sand_prc'][i]) 
-    + (0.487*soils['clay_prc'][i]) 
-    + (0.006*soils['logOm_%'][i]) 
-    + (0.005*(soils['sand_prc'][i]*np.exp(soils['logOm_%'][i])))
-    - (0.013*(soils['clay_prc'][i])*np.exp(soils['logOm_%'][i]))
-    + (0.068*(soils['sand_prc'][i]*soils['clay_prc'][i]))
+    pred_thWP = ((-0.024*((soils['sand_prc'][i])/100))) 
+    + ((0.487*((soils['clay_prc'][i])/100))) 
+    + ((0.006*((soils['om'][i])/100)))
+    + ((0.005*((soils['sand_prc'][i])/100))*((soils['om'][i])/100))
+    - ((0.013*((soils['clay_prc'][i])/100))*((soils['om'][i])/100))
+    + ((0.068*((soils['sand_prc'][i])/100))*((soils['clay_prc'][i])/100))
     + 0.031
-    wp = pred_thWP + 0.14 - 0.02
-    pred_thFC = (-0.0251*soils['sand_prc'][i]) 
-    + (0.195*soils['clay_prc'][i]) 
-    + (0.011*np.exp(soils['logOm_%'][i])) 
-    + (0.006*(soils['sand_prc'][i]*np.exp(soils['logOm_%'][i])))
-    - (0.027*(soils['clay_prc'][i])*np.exp(soils['logOm_%'][i]))
-    + (0.452*(soils['sand_prc'][i]*soils['clay_prc'][i]))
+    wp = pred_thWP + (0.14 * pred_thWP) - 0.02
+    pred_thFC = ((-0.251*((soils['sand_prc'][i])/100))) 
+    + ((0.195*((soils['clay_prc'][i])/100)))
+    + ((0.011*((soils['om'][i])/100))) 
+    + ((0.006*((soils['sand_prc'][i])/100))*((soils['om'][i])/100))
+    - ((0.027*((soils['clay_prc'][i])/100))*((soils['om'][i])/100))
+    + ((0.452*((soils['sand_prc'][i])/100))*((soils['clay_prc'][i])/100))
     + 0.299
-    fc = pred_thFC 
-    + (1.283 * (np.power(pred_thFC, 2))) - (0.374 * pred_thFC) - 0.015
+    fc = pred_thFC + (1.283 * (np.power(pred_thFC, 2))) - (0.374 * pred_thFC) - 0.015
+    #fc = pred_thFC + (1.283 * (pred_thFC*pred_thFC)) - (0.374 * pred_thFC) - 0.015
     ts =soils["thetaS_m3m3"][i]
-    ks=np.exp(soils['logKsat_cmHr'][i])*240
+    ks=(soils['Ksat_cmHr'][i])*240
     #tp = soils['thetaR_m3m3'][i]
     custom = Soil('custom')
     custom.add_layer(thickness=0.1,thS=ts, # assuming soil properties are the same in the upper 0.1m
-                     Ksat=ks,thWP =tp , 
-                     thFC = fc, penetrability = 100)
+                     Ksat=ks,thWP =wp , 
+                     thFC = fc, penetrability = 100.0)
     custom_soil.append(custom)
 
 
 
 # make dictionary with id as key and custom soils properties as value
 soil_dict=dict(zip(id_list,custom_soil))
+
+#soils = soils.assign(om = (10**(soils['logOm_%'])))
+
+## test to see if pedo functions are working
+#pred_thWP = (-0.024*.4)+ (0.487*.2) + (0.006*0.25)+ (0.005*(.4*0.25))- (0.013*(0.2*0.25))+ (0.068*(.4*.2))+ 0.031
+#wp =  (pred_thWP + (0.14 * pred_thWP) - 0.02)*100
+
+#pred_thFC = (-0.251*.4) + (0.195*0.2) + (0.011*0.025) + (0.006*(.4*0.025))- (0.027*(0.2*0.025))+ (0.452*(.4*0.2))+ 0.299
+#fc = pred_thFC + ((1.283 * (np.power(pred_thFC, 2))) - (0.374 * pred_thFC) - 0.015)
+
+test_site2 = soils[soils['UID'] == 1381151]
+pred_thWP = (-0.024*.2616)+ (0.487*.1923) + (0.006*0.014398)+ (0.005*(.2616*0.014398))- (0.013*(0.1923*0.014398))+ (0.068*(.2616*.1923))+ 0.031
+wp =  (pred_thWP + (0.14 * pred_thWP) - 0.02)
+
+pred_thFC = (-0.251*.2616) + (0.195*.1923) + (0.011*0.014398) + (0.006*(.2616*0.014398))- (0.027*(0.1923*0.014398))+ (0.452*(.2616*.1923))+ 0.299
+fc = pred_thFC + ((1.283 * (np.power(pred_thFC, 2))) - (0.374 * pred_thFC) - 0.015)
+
 
 
 # test to see if the dictionaries are working
@@ -105,6 +128,8 @@ irr_mngt = IrrigationManagement(irrigation_method=1,SMT=[80]*4)
 #soil = Soil('Loam')
 #############
 
+
+d = custom.profile
 
 # run model
 model = AquaCropModel(sim_start,sim_end,wdf,custom,crop,initWC, irr_mngt)
