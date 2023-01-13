@@ -69,6 +69,7 @@ wdf = prepare_weather(path)
 sim_start = '2000/01/01' #dates to match crop data
 sim_end = '2020/12/31'
 custom = test_site[0] # use custom layer for 1 site
+#custom = Soil("SiltLoam")
 crop = Crop('Maize', planting_date='05/01') 
 initWC = InitialWaterContent(value=['FC'])
 
@@ -112,7 +113,7 @@ irrig_wimas = irrig_wimas.assign(irrig_wimas = (irrig_wimas['Irrigation_m3']/(ir
 # WIMAS and Aquacrop irrigation df
 irrig_df = pd.merge(irrig_wimas, irrig_aqc, on=["Year", "Year"])
 irrig_df  = irrig_df[['UID', 'Year', 'Irrigation_m3', 'irrig_wimas', '0', '20', '40', '60', '80', '100']]
-#yield_df.to_csv(r'./data/analysis_results/yield_df_1381151.csv', sep=',', encoding='utf-8', header='true')
+irrig_df.to_csv(r'./data/analysis_results/irrig_df_1381151.csv', sep=',', encoding='utf-8', header='true')
 
 # Yield Data
 # yield data from usda nass https://quickstats.nass.usda.gov/#D93A3218-8B77-31A6-B57C-5A5D97A157D8
@@ -131,5 +132,5 @@ yield_df = pd.merge(yield_df, yield_Irrig, on=["Year", "Year"])
 yield_df = yield_df.assign(YieldUSDA = yield_df['Value']*0.0673) # convert yield from bushels/acre to tonne/ha
 
 
-#yield_df.to_csv(r'./data/analysis_results/yield_df_1381151.csv', sep=',', encoding='utf-8', header='true')
+yield_df.to_csv(r'./data/analysis_results/yield_df_1381151.csv', sep=',', encoding='utf-8', header='true')
                          
