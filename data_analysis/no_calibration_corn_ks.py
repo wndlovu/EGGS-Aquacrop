@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Tue Dec 20 07:12:33 2022
+Created on Sun Mar 26 16:41:50 2023
 
 @author: wayne
 """
@@ -39,6 +39,7 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import pickle 
 from sklearn.metrics import r2_score
+import sklearn.metrics as metrics
 import pyemu 
 from pyemu import *
 import flopy
@@ -63,7 +64,7 @@ with open(wd+'/data/agricLand/soils/ks_soil.pickle', 'rb') as sl:
 sher_gridMET = gridMET_county[10]
 sher_gridMET = sher_gridMET.assign(year = sher_gridMET['Date'].dt.year) # create year variable
 #sher_gridMET = sher_gridMET[sher_gridMET['year'].some_date.between(2000, 2015)]
-sher_gridMET = sher_gridMET[(sher_gridMET['year'] >= 2000) & (sher_gridMET['year'] <= 2015)]
+sher_gridMET = sher_gridMET[(sher_gridMET['year'] >= 2000) & (sher_gridMET['year'] <= 2020)]
 #sher_gridMET = sher_gridMET[sher_gridMET['year'] == 2012] # filter for 2012
 sher_gridMET = sher_gridMET.drop(['year'], axis=1) # drop year variable
 
@@ -154,12 +155,12 @@ for i, row in soil_df.iterrows():   #soil_df.itertuples():
 
 wdf = sher_gridMET
 sim_start = '2000/01/01' #dates to match crop data
-sim_end = '2015/12/31'
+sim_end = '2020/12/31'
 custom_soil = custom # use custom layer for 1 site
 crop = Crop('Maize', planting_date='05/01') 
 initWC = InitialWaterContent(value=['FC'])
-irr_mngt = IrrigationManagement(irrigation_method=1,SMT=[80]*4)
-#irr_mngt = IrrigationManagement(irrigation_method = 0) # no irrigation
+#irr_mngt = IrrigationManagement(irrigation_method=1,SMT=[80]*4)
+irr_mngt = IrrigationManagement(irrigation_method=1,SMT=[80]*4) # no irrigation
 
 
 
@@ -171,81 +172,87 @@ model_df_irr = model._outputs.final_stats
 #model_df_water_storage = model._outputs.water_storage
 #model_df_crp_grwth = model._outputs.crop_growth
 
-
-# yield results
-yield_obs = model_df_irr[['Season', 'Yield (tonne/ha)']]
-yield_obs = yield_obs.rename(columns={
-                   'yield': 'Yield (tonne/ha)'})
-
-# export files
-sher_soils.to_csv(r'./data/calibration_files/sheridan_corn/sher_soils.csv', sep=',', encoding='utf-8', header='true')
-sher_gridMET.to_csv(r'./data/calibration_files/sheridan_corn/sher_gridMET.csv', sep=',', encoding='utf-8', header='true')
-yield_obs.to_csv(r'./data/calibration_files/sheridan_corn/yield_obs.txt', sep=' ', index=False, header='true')
+## Create year variable
+model_df_irr = model_df_irr.assign(Year =  model_df_irr['Harvest Date (YYYY/MM/DD)'].dt.year)
 
 
-# path to pest input files
-inputs_path = wd+'/data/calibration_files/sheridan_corn'
-pest_path = wd+'/data/calibration_files/pest_sheridan_corn'
-params = wd+'/data/calibration_files/sheridan_corn/sher_pest_params.txt'
-yield_df = wd+'/data/calibration_files/sheridan_corn/yield_obs.txt'
+### YIELD
 
-pf = pyemu.utils.pst_from.PstFrom(inputs_path,pest_path, remove_existing=True)
+# Yield Data - Irrigated 
+# yield data from usda nass https://quickstats.nass.usda.gov/#D93A3218-8B77-31A6-B57C-5A5D97A157D8
+yield_Irrig = pd.read_csv(wd + "/data/agricLand/yield/Kansas/CornYield_GMD4_WNdlovu_v1_20230117.csv") #CORN, GRAIN, IRRIGATED - YIELD, MEASURED IN BU / ACRE
+#yield_noIrrig = pd.read_csv(wd.replace('code',"data/agricLand/gridMET/sheridanYield_noIrrig.csv")) #CORN, GRAIN, NON-  IRRIGATED - YIELD, MEASURED IN BU / ACRE
 
-pf.add_parameters(yield_df)
+# Select year and irrigation value
+yield_Irrig = yield_Irrig[(yield_Irrig['County'] == 'SHERIDAN') & (yield_Irrig['Irrig_status'] == 'irrigated')]
+yield_Irrig = yield_Irrig[['Year', 'Value']]
 
+# df with USDS NASS yield and Aquacrop yield
+yield_df = model_df_irr
+yield_df = pd.merge(yield_df, yield_Irrig, on=["Year", "Year"])
+yield_df = yield_df.assign(YieldUSDA = yield_df['Value']*0.0673) # convert yield from bushels/acre to tonne/ha
+yield_df  = yield_df[['Year', 'YieldUSDA','Yield (tonne/ha)']]
 
-
-
-
-pf.add_observations(params)
-
-
-
-pf.add_observations("heads.csv")
-pf.build_pst("pest.pst")
-pe = pf.draw(100)
-pe.to_csv("prior.csv")
-
+# rename columns
+yield_df = yield_df.rename(columns={
+                   'YieldUSDA': 'USDA Yield (t/ha)',
+                   'Yield (tonne/ha)': 'AquaCrop Yield (t/ha)'})
 
 
+### IRRIGATION
+## get irrigation values from Aquacrop
+
+irrig_aqc = model_df_irr
+                                                            
+
+irrig_aqc = irrig_aqc[irrig_aqc['Year'].between(2000, 2014)] # filter for to match Sheridan irrigated yield data
+irrig_aqc = irrig_aqc[['Year', 'Seasonal irrigation (mm)']]
+
+## Corn Water Use WIMAS
+irrig_wimas = pd.read_csv(wd + "/data/water/Kansas/IrrigationDepth_GMD4_WNdlovu_v1_20230123.csv")
+irrig_wimas = irrig_wimas[(irrig_wimas['county_abrev'] == 'SD') & (irrig_wimas['crop_name'] == 'Corn') & (irrig_wimas['WUA_YEAR'].between(2000, 2014))]
+
+# calculate county ave irrigation # better method??
+irrig_wimas = irrig_wimas.groupby(['WUA_YEAR']).agg({'irrig_depth': lambda x: x.median(skipna=True)})
+irrig_wimas = irrig_wimas.reset_index()
+
+
+# WIMAS and Aquacrop irrigation df
+irrig_df = pd.merge(irrig_wimas, irrig_aqc, left_on = "WUA_YEAR", right_on = "Year")
+#irrig_df  = irrig_df[['UID', 'Year','irrig_depth', 'Seasonal irrigation (mm)']]
+irrig_df = irrig_df.rename(columns={
+                   'irrig_depth': 'WIMAS Irrigation (mm)',
+                   'Seasonal irrigation (mm)': 'AquaCrop Irrigation (mm)'})
+irrig_df  = irrig_df[['Year', 'WIMAS Irrigation (mm)','AquaCrop Irrigation (mm)']]
+
+
+uncal_corn_irrig = pd.merge(yield_df, irrig_df, on=["Year", "Year"])
+
+from sklearn.linear_model import LinearRegression
+# calculate fit params
+def model_fit(y, yhat):
+    mae = metrics.mean_absolute_error(y, yhat)
+    mse = metrics.mean_squared_error(y, yhat)
+    rmse = np.sqrt(mse) # or mse**(0.5) 
+    model = LinearRegression().fit(y, yhat)
+    #r2 = LinearRegression().fit(y,yhat)
+    r2 = model.score(y, yhat)
+    
+    sum_stats = {'var_name': ['mae', 'mse', 'r2'],
+                 'value': [mae, mse, r2]}
+                
+    sum_stats_df = pd.DataFrame(sum_stats)
+    
+    return(sum_stats_df)
+
+yield_sumstats = model_fit(uncal_corn_irrig[['USDA Yield (t/ha)']], uncal_corn_irrig[['AquaCrop Yield (t/ha)']])
+irrig_sumstats = model_fit(uncal_corn_irrig[['WIMAS Irrigation (mm)']], uncal_corn_irrig[['AquaCrop Irrigation (mm)']])
+
+
+uncal_corn_irrig.to_csv(r'./data/analysis_results/uncalib_cornsimul_rainfed_sheridan.csv', sep=',', encoding='utf-8', header='true')
 
 
 
-# define the model and observed data
-model = AquaCrop()
-observed_data = ...
-
-# create a parameter estimation object 
-pe = pyemu.ParameterEstimation(model, observed_data)
-
-# define the parameter bounds
-param_bounds = {'Kc': (0.1, 0.9),
-                'ETc': (0.1, 0.9),
-                'LAI': (0.1, 0.9)}
-
-# run the calibration 
-pe.run(param_bounds)
-
-# get the calibrated parameters
-calibrated_params = pe.get_calibrated_parameters()
-
-
-
-
-import pyemu
-from pyemu import PstFrom
-
-# create a pest control file object
-pest_control_file = PstFrom("my_model.pst")
-
-# add parameters to the pest control file object 
-pest_control_file.add_parameters(["par1", "par2", "par3"])
-
-# add observations to the pest control file object 
-pest_control_file.add_observations(["obs1", "obs2", "obs3"])
-
-# write the pest control file to disk
-pest_control_file.write("my_model.pst")
 
 
 

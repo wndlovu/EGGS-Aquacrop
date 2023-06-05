@@ -357,8 +357,8 @@ model_df_crp_grwth = model_df_crp_grwth[model_df_crp_grwth['Date'].between('2000
 
 
 ## save new dfs in analysis_results - might change this to results/tables if file sizes are reasonable
-yield_df.to_csv(r'./data/analysis_results/yield_df_test.csv', sep=',', encoding='utf-8', header='true')
 irrig_df.to_csv(r'./data/analysis_resultsirrig_df_test.csv', sep=',', encoding='utf-8', header='true')
+yield_df.to_csv(r'./data/analysis_results/yield_df_test.csv', sep=',', encoding='utf-8', header='true')
 et_means.to_csv(r'./data/analysis_results/et_df_test.csv', sep=',', encoding='utf-8', header='true')
  
 
