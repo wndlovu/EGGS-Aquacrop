@@ -9,6 +9,9 @@ Created on Thu Oct  6 19:25:20 2022
 
 !pip install aquacrop==2.2
 !pip install numba==0.55
+!pip install statsmodels==0.13.2
+import statsmodels.api as sm
+from statsmodels.tools.eval_measures import rmse
 from aquacrop.utils import prepare_weather, get_filepath
 from aquacrop import AquaCropModel, Soil, Crop, InitialWaterContent, IrrigationManagement
 #from aquacrop.entities import IrrigationManagement
@@ -18,6 +21,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 import datetime
+import csv
 #from aquacrop.classes import    *
 #from aquacrop.core import       *
 
@@ -55,8 +59,8 @@ for i in range(0, len(soils)): # full model replace with soils
     ts =soils["thetaS_m3m3"][i]
     ks=(soils['Ksat_cmHr'][i])*240
     #tp = soils['thetaR_m3m3'][i]
-    custom = Soil('custom')
-    custom.add_layer(thickness=0.1,thS=ts, # assuming soil properties are the same in the upper 0.1m
+    custom = Soil('custom', dz=[0.1]*30)
+    custom.add_layer(thickness=custom.zSoil,thS=ts, # assuming soil properties are the same in the upper 0.1m
                      Ksat=ks,thWP =wp , 
                      thFC = fc, penetrability = 100.0)
     custom_soil.append(custom)
@@ -65,6 +69,15 @@ for i in range(0, len(soils)): # full model replace with soils
 
 # make dictionary with id as key and custom soils properties as value
 soil_dict=dict(zip(id_list,custom_soil))
+
+# save disctionary
+#soil_dict_fl = csv.writer(open("output.csv", "w"))
+
+# loop over dictionary keys and values
+for key, val in soil_dict.items():
+
+    # write every key and value to file
+    soil_dict_fl.writerow([key, val])
 
 
 # test to see if the dictionaries are working
@@ -89,26 +102,18 @@ custom = test_site[0] # use custom layer for 1 site
 crop = Crop('Maize', planting_date='05/01') 
 initWC = InitialWaterContent(value=['FC'])
 irr_mngt = IrrigationManagement(irrigation_method=1,SMT=[80]*4)
-
-############
-# test for changing the soil types
-#custom = Soil('custom',cn=46,rew=7)
-#custom.add_layer_from_texture(thickness=custom.zSoil,
-                              #Sand=10,Clay=35,
-                              #OrgMat=2.5,penetrability=100)
-
-#soil = Soil('Loam')
-#############
-
+#irr_mngt = IrrigationManagement(irrigation_method = 0) # no irrigation
 
 
 
 # run model
 model = AquaCropModel(sim_start,sim_end,wdf,custom,crop,initWC, irr_mngt)
-#model.initialize() # initilize model
 model.run_model(till_termination=True) # run model till the end
 model_df_et = model._outputs.water_flux
 model_df_irr = model._outputs.final_stats
+model_df_water_storage = model._outputs.water_storage
+model_df_crp_grwth = model._outputs.crop_growth
+
 
 ### IRRIGATION
 
@@ -139,8 +144,8 @@ irrig_df  = irrig_df[['UID', 'Year','irrig_wimas', 'Seasonal irrigation (mm)']]
 
 # Yield Data
 # yield data from usda nass https://quickstats.nass.usda.gov/#D93A3218-8B77-31A6-B57C-5A5D97A157D8
-yield_Irrig = pd.read_csv(wd + "/data/agricLand/yield/sheridanYield_Irrig.csv") #CORN, GRAIN, YIELD, MEASURED IN BU / ACRE
-#yield_noIrrig = pd.read_csv(wd.replace('code',"data/agricLand/gridMET/sheridanYield_noIrrig.csv")) #CORN, GRAIN, IRRIGATED - YIELD, MEASURED IN BU / ACRE
+yield_Irrig = pd.read_csv(wd + "/data/agricLand/yield/sheridanYield_Irrig.csv") #CORN, GRAIN, IRRIGATED - YIELD, MEASURED IN BU / ACRE
+#yield_noIrrig = pd.read_csv(wd.replace('code',"data/agricLand/gridMET/sheridanYield_noIrrig.csv")) #CORN, GRAIN, NON-  IRRIGATED - YIELD, MEASURED IN BU / ACRE
 
 # Select year and irrigation value
 yield_Irrig = yield_Irrig[['Year', 'Value']]
@@ -238,31 +243,126 @@ et_means = et_means[['time', 'disalexi',
                      'ptjpl', 'sims', 'ssebop', 'Et']]
 
 
-## save new dfs in analysis_data
+
+### SUMMARY STATS TABLE COMPARING MODELS
+
+# r2
+#r2_score was not working, so used function
+
+def rsquared(x, y):
+    model = LinearRegression().fit(x,y)
+    return(model.score(x, y))
+
+#r^2
+r2_yield = rsquared(np.array(yield_df_test['USDA-NASS']).reshape(-1, 1), np.array(yield_df_test['Aquacrop']))
+r2_irrigation = rsquared(np.array(irrig_df_test['WIMAS']).reshape(-1, 1), np.array(irrig_df_test['Aquacrop']))
+r2_disalexi = rsquared(np.array(et_means_test['disalexi']).reshape(-1, 1), np.array(et_means_test['aquacrop']))
+r2_ensemble = rsquared(np.array(et_means_test['ensemble']).reshape(-1, 1), np.array(et_means_test['aquacrop']))
+r2_geesebal = rsquared(np.array(et_means_test['geesebal']).reshape(-1, 1), np.array(et_means_test['aquacrop']))
+r2_ptjpl = rsquared(np.array(et_means_test['ptjpl']).reshape(-1, 1), np.array(et_means_test['aquacrop']))
+r2_sims = rsquared(np.array(et_means_test['sims']).reshape(-1, 1), np.array(et_means_test['aquacrop']))
+r2_ssebop = rsquared(np.array(et_means_test['ssebop']).reshape(-1, 1), np.array(et_means_test['aquacrop']))
+
+
+# mean biased error
+mbe_yield = (np.sum((yield_df_test['Aquacrop'] - yield_df_test['USDA-NASS'])))/len(yield_df_test['USDA-NASS'])
+mbe_irrigation = (np.sum((irrig_df_test['Aquacrop']- irrig_df_test['WIMAS'])))/len(irrig_df_test['WIMAS'])
+mbe_disalexi = (np.sum((et_means_test['aquacrop'] -et_means_test['disalexi'])))/len(et_means_test['aquacrop'])
+mbe_ensemble = (np.sum((et_means_test['aquacrop'] - et_means_test['ensemble'])))/len(et_means_test['aquacrop'])
+mbe_geesebal = (np.sum((et_means_test['aquacrop'] - et_means_test['geesebal'])))/len(et_means_test['aquacrop'])
+mbe_ptjpl = (np.sum((et_means_test['aquacrop'] - et_means_test['ptjpl'])))/len(et_means_test['aquacrop'])
+mbe_sims = (np.sum((et_means_test['aquacrop'] - et_means_test['sims'])))/len(et_means_test['aquacrop'])
+mbe_ssebop = (np.sum((et_means_test['aquacrop'] - et_means_test['ssebop'])))/len(et_means_test['aquacrop'])
+
+
+# root mean square error
+rmse_yield = sqrt(mean_squared_error(yield_df_test['USDA-NASS'],yield_df_test['Aquacrop']))
+rmse_irrigation = sqrt(mean_squared_error(irrig_df_test['WIMAS'],irrig_df_test['Aquacrop']))
+rmse_disalexi = sqrt(mean_squared_error(et_means_test['disalexi'],et_means_test['aquacrop']))
+rmse_ensemble = sqrt(mean_squared_error(et_means_test['ensemble'],et_means_test['aquacrop']))
+rmse_geesebal = sqrt(mean_squared_error(et_means_test['geesebal'],et_means_test['aquacrop']))
+rmse_ptjpl = sqrt(mean_squared_error(et_means_test['ptjpl'],et_means_test['aquacrop']))
+rmse_sims = sqrt(mean_squared_error(et_means_test['sims'],et_means_test['aquacrop']))
+rmse_ssebop = sqrt(mean_squared_error(et_means_test['ssebop'],et_means_test['aquacrop']))
+
+# normalised rmse
+nrmse_yield = sqrt(mean_squared_error(yield_df_test['USDA-NASS'],yield_df_test['Aquacrop']))/np.mean(yield_df_test['USDA-NASS'])
+nrmse_irrigation = sqrt(mean_squared_error(irrig_df_test['WIMAS'],irrig_df_test['Aquacrop']))/np.mean(irrig_df_test['WIMAS'])
+nrmse_disalexi = sqrt(mean_squared_error(et_means_test['disalexi'],et_means_test['aquacrop']))/np.mean(et_means_test['disalexi'])
+nrmse_ensemble = sqrt(mean_squared_error(et_means_test['ensemble'],et_means_test['aquacrop']))/np.mean(et_means_test['ensemble'])
+nrmse_geesebal = sqrt(mean_squared_error(et_means_test['geesebal'],et_means_test['aquacrop']))/np.mean(et_means_test['geesebal'])
+nrmse_ptjpl = sqrt(mean_squared_error(et_means_test['ptjpl'],et_means_test['aquacrop']))/np.mean(et_means_test['ptjpl'])
+nrmse_sims = sqrt(mean_squared_error(et_means_test['sims'],et_means_test['aquacrop']))/np.mean(et_means_test['sims'])
+nrmse_ssebop = sqrt(mean_squared_error(et_means_test['ssebop'],et_means_test['aquacrop']))/np.mean(et_means_test['ssebop'])
+
+# mean absolute error
+mae_yield = mean_absolute_error(yield_df_test['USDA-NASS'],yield_df_test['Aquacrop'])
+mae_irrigation = mean_absolute_error(irrig_df_test['WIMAS'],irrig_df_test['Aquacrop'])
+mae_disalexi = mean_absolute_error(et_means_test['disalexi'],et_means_test['aquacrop'])
+mae_ensemble = mean_absolute_error(et_means_test['ensemble'],et_means_test['aquacrop'])
+mae_geesebal = mean_absolute_error(et_means_test['geesebal'],et_means_test['aquacrop'])
+mae_ptjpl = mean_absolute_error(et_means_test['ptjpl'],et_means_test['aquacrop'])
+mae_sims = mean_absolute_error(et_means_test['sims'],et_means_test['aquacrop'])
+mae_ssebop = mean_absolute_error(et_means_test['ssebop'],et_means_test['aquacrop'])
+
+# index of agreement
+ia_yield = 1-(np.sum((yield_df_test['Aquacrop']- yield_df_test['USDA-NASS'])**2))/(np.sum(np.abs(yield_df_test['Aquacrop']-np.mean(yield_df_test['USDA-NASS']))+(np.abs(yield_df_test['USDA-NASS']-np.mean(yield_df_test['USDA-NASS']))))**2)      
+ia_irrigation = 1-(np.sum((irrig_df_test['Aquacrop']-irrig_df_test['WIMAS'])**2))/(np.sum(np.abs(irrig_df_test['Aquacrop']-np.mean(irrig_df_test['WIMAS']))+(np.abs(irrig_df_test['WIMAS']-np.mean(irrig_df_test['WIMAS']))))**2)                     
+ia_disalexi = 1-(np.sum((et_means_test['aquacrop']- et_means_test['disalexi'])**2))/(np.sum(np.abs(et_means_test['aquacrop']-np.mean(et_means_test['disalexi']))+(np.abs(et_means_test['disalexi']-np.mean(et_means_test['disalexi']))))**2)                     
+ia_ensemble = 1-(np.sum((et_means_test['aquacrop']-et_means_test['ensemble'])**2))/(np.sum(np.abs(et_means_test['aquacrop']-np.mean(et_means_test['ensemble']))+(np.abs(et_means_test['ensemble']-np.mean(et_means_test['ensemble']))))**2)                          
+ia_geesebal = 1-(np.sum((et_means_test['aquacrop']- et_means_test['geesebal'])**2))/(np.sum(np.abs(et_means_test['aquacrop']-np.mean(et_means_test['geesebal']))+(np.abs(et_means_test['geesebal']-np.mean(et_means_test['geesebal']))))**2)                    
+ia_ptjpl  = 1-(np.sum((et_means_test['aquacrop'] -et_means_test['ptjpl'])**2))/(np.sum(np.abs(et_means_test['aquacrop']-np.mean(et_means_test['ptjpl']))+(np.abs(et_means_test['ptjpl']-np.mean(et_means_test['ptjpl']))))**2)     
+ia_sims  = 1-(np.sum((et_means_test['aquacrop']-et_means_test['sims'])**2))/(np.sum(np.abs(et_means_test['aquacrop']-np.mean(et_means_test['sims']))+(np.abs(et_means_test['sims']-np.mean(et_means_test['sims']))))**2)
+ia_ssebop = 1-(np.sum((et_means_test['aquacrop']-et_means_test['ssebop'])**2))/(np.sum(np.abs(et_means_test['aquacrop']-np.mean(et_means_test['ssebop']))+(np.abs(et_means_test['ssebop']-np.mean(et_means_test['ssebop']))))**2)
+
+
+
+# make df with summary stats
+sum_stats = {'var_name': ['yield', 'irrigation', 'et_disalexi', 'et_ensemble', 
+                          'et_geesebal', 'et_ptjpl', 'et_sims', 'et_ssebop'],
+        'range (observed)': ['10-14(t/ha)', '258-533(mm)', '8-184(mm)', '11-202(mm)',
+                        '3-184(mm)', '9-187(mm)', '10-222(mm)', '20-231(mm)'],
+        'mean (observed)': ['12(mm)', '384(mm)', '57(mm)', '71(mm)', '60(mm)', '66(mm)', '82(mm)', '96(mm)'],
+        'r2': [r2_yield, r2_irrigation, r2_disalexi, r2_ensemble, r2_geesebal,
+                  r2_ptjpl, r2_sims, r2_ssebop],   # not sure why r2 is used since it shows relationship between predictor and response variables
+        'rmse': [rmse_yield, rmse_irrigation, rmse_disalexi, rmse_ensemble, rmse_geesebal,
+                  rmse_ptjpl, rmse_sims, rmse_ssebop],
+        'nrmse': [nrmse_yield, nrmse_irrigation, nrmse_disalexi, nrmse_ensemble, nrmse_geesebal,
+                  nrmse_ptjpl, nrmse_sims, nrmse_ssebop],
+        'mae':  [mae_yield, mae_irrigation, mae_disalexi, mae_ensemble, mae_geesebal,
+                  mae_ptjpl, mae_sims, mae_ssebop],
+        'mbe':  [mbe_yield, mbe_irrigation, mbe_disalexi, mbe_ensemble, mbe_geesebal,
+                  mbe_ptjpl, mbe_sims, mbe_ssebop],
+        'ia': [ia_yield, ia_irrigation, ia_disalexi, ia_ensemble, ia_geesebal,
+                  ia_ptjpl, ia_sims, ia_ssebop]}
+
+# save df
+sum_stats_df = pd.DataFrame(sum_stats)
+
+
+
+## WATER STORAGE
+# add date column from the wdf_date df
+model_df_water_storage = model_df_water_storage.join(wdf_date)
+model_df_water_storage = model_df_water_storage.drop(columns=['index'])
+
+
+
+### CROP GROWTH
+model_df_crp_grwth = model_df_crp_grwth.join(wdf_date)
+model_df_crp_grwth = model_df_crp_grwth.drop(columns=['index'])
+model_df_crp_grwth = model_df_crp_grwth.assign(biomass_stress = model_df_crp_grwth['biomass_ns'] - model_df_crp_grwth['biomass']) # difference in biomass vals
+model_df_crp_grwth = model_df_crp_grwth[model_df_crp_grwth['Date'].between('2000/01/01','2014/12/31')] # filter to match USDA dates (up to 2014)
+
+
+
+## save new dfs in analysis_results - might change this to results/tables if file sizes are reasonable
+irrig_df.to_csv(r'./data/analysis_resultsirrig_df_test.csv', sep=',', encoding='utf-8', header='true')
 yield_df.to_csv(r'./data/analysis_results/yield_df_test.csv', sep=',', encoding='utf-8', header='true')
-irrig_df.to_csv(r'./data/analysis_results/irrig_df_test.csv', sep=',', encoding='utf-8', header='true')
 et_means.to_csv(r'./data/analysis_results/et_df_test.csv', sep=',', encoding='utf-8', header='true')
  
 
 
 
  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
     
