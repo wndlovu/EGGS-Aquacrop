@@ -6,8 +6,8 @@ Created on Fri Jan 18 14:03:23 2023
 @author: wayne
 """
 
-!pip install aquacrop==2.2
-!pip install statsmodels==0.13.2
+#!pip install aquacrop==2.2
+#!pip install statsmodels==0.13.2
 !pip install dfply
 !pip install seaborn
 !pip install pyshp
@@ -48,7 +48,7 @@ chdir(wd)
 # GMD4 fields
 fields = gpd.read_file(wd + '/data/agricLand/Property Lines/Kansas/gmd4/ModelExtent_GMD4model_BWilson_v1_20230111.shp')
 
-
+eggs/
 
 # KS counties
 # https://catalog.data.gov/dataset/tiger-line-shapefile-2019-state-kansas-current-county-subdivision-state-based
